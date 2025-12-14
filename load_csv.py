@@ -1,4 +1,5 @@
 import sqlite3
+import csv
 
 # 1. 데이터베이스 연결
 conn = sqlite3.connect("database.db")
@@ -40,3 +41,18 @@ conn.commit()
 conn.close()
 
 print("데이터베이스 설정 완료됨")
+
+#csv파일 열고 첫 줄을 확인해보자
+csv_file = open("서울교통공사_지하철혼잡도정보_20250630.csv", encoding="cp949")
+csv_reader = csv.reader(csv_file)
+
+header = next(csv_reader)
+print("CSV 헤더:")
+print(header)
+
+# 데이터 한 줄만 출력
+first_row = next(csv_reader)
+print("첫 번째 데이터 행은?:")
+print(first_row)
+
+csv_file.close()
