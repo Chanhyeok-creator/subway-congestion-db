@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <title>지하철 혼잡도 조회</title>
@@ -7,46 +7,39 @@
 <body>
     <h1>지하철 혼잡도 조회</h1>
 
-    <form method="post" action="/search">
-        <label>역 이름:</label>
-        <input type="text" name="station_name" required>
-        <br><br>
+    <form method="POST">
+        <label for="station">역 선택:</label>
+        <select name="station" id="station" required>
+            {% for s in stations %}
+                <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
+            {% endfor %}
+        </select>
 
-        <label>요일:</label>
-        <select name="day_type">
+        <label for="time_slot">시간대 선택:</label>
+        <select name="time_slot" id="time_slot" required>
+            {% for t in time_slots %}
+                <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="day_type">요일 선택:</label>
+        <select name="day_type" id="day_type">
             <option value="평일">평일</option>
             <option value="토요일">토요일</option>
             <option value="일요일">일요일</option>
         </select>
-        <br><br>
 
-        <label>방향:</label>
-        <select name="direction">
+        <label for="direction">방향 선택:</label>
+        <select name="direction" id="direction">
             <option value="상선">상선</option>
             <option value="하선">하선</option>
         </select>
-        <br><br>
-
-        <label>시간대:</label>
-        <select name="time_slot">
-            <option value="8시00분">8시00분</option>
-            <option value="8시30분">8시30분</option>
-            <option value="9시00분">9시00분</option>
-            <option value="18시00분">18시00분</option>
-            <option value="18시30분">18시30분</option>
-        </select>
-        <br><br>
 
         <button type="submit">조회</button>
     </form>
 
-    {% if congestion is not none %}
-        <hr>
-        <h2>조회 결과</h2>
-        <p><b>혼잡도:</b> {{ congestion }}</p>
-    {% elif searched %}
-        <hr>
-        <p>해당 조건의 데이터가 없습니다.</p>
+    {% if congestion_value is not none %}
+        <h2>혼잡도: {{ congestion_value }}%</h2>
     {% endif %}
 </body>
 </html>
