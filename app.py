@@ -38,7 +38,10 @@ def index():
         """, (station_id, time_slot, day_type, direction))
         result = cursor.fetchone()
         if result:
-            congestion_value = result["congestion_level"]
+            if result["congestion_level"] is not None:
+                congestion_value = result["congestion_level"]
+            else:
+                congestion_value = "데이터 없음"
 
     conn.close()
     return render_template("index.html",
@@ -81,15 +84,19 @@ def add_station():
 
     for t in time_slots:
         val = request.form.get(f"time_{t}")
-        if val is not None and val != "":
+        # 비어있으면 NULL, 입력하면 숫자로
+        if val is None or val == "":
+            congestion_level = None
+        else:
             try:
                 congestion_level = int(val)
-                cursor.execute("""
-                    INSERT OR IGNORE INTO Congestion (station_id, day_type, direction, time_slot, congestion_level)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (station_id, day_type, direction, t, congestion_level))
             except ValueError:
-                continue
+                congestion_level = None
+
+        cursor.execute("""
+            INSERT OR IGNORE INTO Congestion (station_id, day_type, direction, time_slot, congestion_level)
+            VALUES (?, ?, ?, ?, ?)
+        """, (station_id, day_type, direction, t, congestion_level))
 
     conn.commit()
     conn.close()
