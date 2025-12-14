@@ -7,7 +7,10 @@ app = Flask(__name__)
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    # 외래키 ON (역 삭제 시 congestion 자동 삭제)
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
 
 # 조회 기능
 @app.route("/", methods=["GET", "POST"])
@@ -38,16 +41,14 @@ def index():
         """, (station_id, time_slot, day_type, direction))
         result = cursor.fetchone()
         if result:
-            if result["congestion_level"] is not None:
-                congestion_value = result["congestion_level"]
-            else:
-                congestion_value = "데이터 없음"
+            congestion_value = result["congestion_level"] if result["congestion_level"] is not None else "데이터 없음"
 
     conn.close()
     return render_template("index.html",
                            stations=stations,
                            time_slots=time_slots,
                            congestion_value=congestion_value)
+
 
 # 새로운 역 + 혼잡도 추가 기능
 @app.route("/add_station", methods=["POST"])
@@ -84,7 +85,6 @@ def add_station():
 
     for t in time_slots:
         val = request.form.get(f"time_{t}")
-        # 비어있으면 NULL, 입력하면 숫자로
         if val is None or val == "":
             congestion_level = None
         else:
@@ -101,6 +101,40 @@ def add_station():
     conn.commit()
     conn.close()
     return "새로운 역과 혼잡도가 추가되었습니다. <a href='/'>홈으로</a>"
+
+
+# 역 전체 삭제
+@app.route("/delete_station", methods=["POST"])
+def delete_station():
+    conn = get_db()
+    cursor = conn.cursor()
+
+    station_id = request.form.get("del_station")
+    cursor.execute("DELETE FROM Station WHERE station_id=?", (station_id,))
+
+    conn.commit()
+    conn.close()
+    return "선택한 역과 관련 혼잡도가 모두 삭제되었습니다. <a href='/'>홈으로</a>"
+
+
+@app.route("/delete_congestion", methods=["POST"])
+def delete_congestion():
+    conn = get_db()
+    cursor = conn.cursor()
+
+    station_id = request.form.get("del_station")
+    time_slot = request.form.get("del_time")
+    day_type = request.form.get("del_day_type") or "평일"
+    direction = request.form.get("del_direction") or "상선"
+
+    cursor.execute("""
+        DELETE FROM Congestion
+        WHERE station_id=? AND time_slot=? AND day_type=? AND direction=?
+    """, (station_id, time_slot, day_type, direction))
+
+    conn.commit()
+    conn.close()
+    return "선택한 혼잡도 데이터가 삭제되었습니다. <a href='/'>홈으로</a>"
 
 if __name__ == "__main__":
     app.run(debug=True)
