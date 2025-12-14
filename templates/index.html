@@ -71,7 +71,7 @@
         <!-- 시간대별 혼잡도 입력 -->
         {% for t in time_slots %}
             <label>{{ t }}:</label>
-            <input type="number" name="time_{{ t }}" min="0" max="100" required>
+            <input type="number" name="time_{{ t }}" min="0" max="100"> <!-- NULL 값 허요 -->
         {% endfor %}
 
         <button type="submit">추가</button>
