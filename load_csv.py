@@ -1,6 +1,9 @@
 import sqlite3
 import csv
 
+DB_PATH = "database.db"
+CSV_PATH = "서울교통공사_지하철혼잡도정보_20250630.csv"
+
 # 1. 데이터베이스 연결
 conn = sqlite3.connect("database.db")
 cursor = conn.cursor()
