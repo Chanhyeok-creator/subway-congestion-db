@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>지하철 혼잡도 조회 & 추가</title>
+    <title>지하철 혼잡도 조회 & 추가/삭제</title>
 </head>
 <body>
     <h1>지하철 혼잡도 조회</h1>
@@ -68,13 +68,59 @@
             <option value="하선">하선</option>
         </select>
 
-        <!-- 시간대별 혼잡도 입력 -->
         {% for t in time_slots %}
             <label>{{ t }}:</label>
-            <input type="number" name="time_{{ t }}" min="0" max="100"> <!-- NULL 값 허요 -->
+            <input type="number" name="time_{{ t }}" min="0" max="100">
         {% endfor %}
 
         <button type="submit">추가</button>
     </form>
+
+    <hr>
+    <h2>삭제 기능</h2>
+
+    <!-- 역 전체 삭제 -->
+    <form method="POST" action="/delete_station">
+        <label for="del_station">삭제할 역 선택:</label>
+        <select name="del_station" id="del_station" required>
+            {% for s in stations %}
+                <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">역 전체 삭제</button>
+    </form>
+
+    <!-- 특정 혼잡도 삭제 -->
+    <form method="POST" action="/delete_congestion">
+        <label for="del_station2">역 선택:</label>
+        <select name="del_station" id="del_station2" required>
+            {% for s in stations %}
+                <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="del_time">시간대 선택:</label>
+        <select name="del_time" id="del_time" required>
+            {% for t in time_slots %}
+                <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="del_day_type">요일 선택:</label>
+        <select name="del_day_type" id="del_day_type">
+            <option value="평일">평일</option>
+            <option value="토요일">토요일</option>
+            <option value="일요일">일요일</option>
+        </select>
+
+        <label for="del_direction">방향 선택:</label>
+        <select name="del_direction" id="del_direction">
+            <option value="상선">상선</option>
+            <option value="하선">하선</option>
+        </select>
+
+        <button type="submit">혼잡도 삭제</button>
+    </form>
+
 </body>
 </html>
