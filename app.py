@@ -1,4 +1,4 @@
-from flask import Flask,render_template,request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 
 DB_PATH = "database.db"
@@ -13,3 +13,6 @@ def get_db():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
