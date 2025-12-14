@@ -2,11 +2,12 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>지하철 혼잡도 조회</title>
+    <title>지하철 혼잡도 조회 & 추가</title>
 </head>
 <body>
     <h1>지하철 혼잡도 조회</h1>
 
+    <!-- 조회 폼 -->
     <form method="POST">
         <label for="station">역 선택:</label>
         <select name="station" id="station" required>
@@ -41,5 +42,39 @@
     {% if congestion_value is not none %}
         <h2>혼잡도: {{ congestion_value }}%</h2>
     {% endif %}
+
+    <hr>
+    <h2>새로운 역 및 혼잡도 추가</h2>
+    <form method="POST" action="/add_station">
+        <label for="new_station_name">역 이름:</label>
+        <input type="text" name="new_station_name" id="new_station_name" required>
+
+        <label for="new_line">호선:</label>
+        <input type="number" name="new_line" id="new_line" required>
+
+        <label for="new_station_number">역 번호:</label>
+        <input type="text" name="new_station_number" id="new_station_number" required>
+
+        <label for="new_day_type">요일:</label>
+        <select name="new_day_type" id="new_day_type">
+            <option value="평일">평일</option>
+            <option value="토요일">토요일</option>
+            <option value="일요일">일요일</option>
+        </select>
+
+        <label for="new_direction">방향:</label>
+        <select name="new_direction" id="new_direction">
+            <option value="상선">상선</option>
+            <option value="하선">하선</option>
+        </select>
+
+        <!-- 시간대별 혼잡도 입력 -->
+        {% for t in time_slots %}
+            <label>{{ t }}:</label>
+            <input type="number" name="time_{{ t }}" min="0" max="100" required>
+        {% endfor %}
+
+        <button type="submit">추가</button>
+    </form>
 </body>
 </html>
