@@ -5,122 +5,143 @@
     <title>지하철 혼잡도 조회 & 추가/삭제</title>
 </head>
 <body>
-    <h1>지하철 혼잡도 조회</h1>
 
-    <!-- 조회 폼 -->
-    <form method="POST">
-        <label for="station">역 선택:</label>
-        <select name="station" id="station" required>
-            {% for s in stations %}
-                <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
-            {% endfor %}
-        </select>
+<h1>지하철 혼잡도 조회</h1>
 
-        <label for="time_slot">시간대 선택:</label>
-        <select name="time_slot" id="time_slot" required>
-            {% for t in time_slots %}
-                <option value="{{ t }}">{{ t }}</option>
-            {% endfor %}
-        </select>
-
-        <label for="day_type">요일 선택:</label>
-        <select name="day_type" id="day_type">
-            <option value="평일">평일</option>
-            <option value="토요일">토요일</option>
-            <option value="일요일">일요일</option>
-        </select>
-
-        <label for="direction">방향 선택:</label>
-        <select name="direction" id="direction">
-            <option value="상선">상선</option>
-            <option value="하선">하선</option>
-        </select>
-
-        <button type="submit">조회</button>
-    </form>
-
-    {% if congestion_value is not none %}
-        <h2>혼잡도: {{ congestion_value }}%</h2>
-    {% endif %}
-
-    <hr>
-    <h2>새로운 역 및 혼잡도 추가</h2>
-    <form method="POST" action="/add_station">
-        <label for="new_station_name">역 이름:</label>
-        <input type="text" name="new_station_name" id="new_station_name" required>
-
-        <label for="new_line">호선:</label>
-        <input type="number" name="new_line" id="new_line" required>
-
-        <label for="new_station_number">역 번호:</label>
-        <input type="text" name="new_station_number" id="new_station_number" required>
-
-        <label for="new_day_type">요일:</label>
-        <select name="new_day_type" id="new_day_type">
-            <option value="평일">평일</option>
-            <option value="토요일">토요일</option>
-            <option value="일요일">일요일</option>
-        </select>
-
-        <label for="new_direction">방향:</label>
-        <select name="new_direction" id="new_direction">
-            <option value="상선">상선</option>
-            <option value="하선">하선</option>
-        </select>
-
-        {% for t in time_slots %}
-            <label>{{ t }}:</label>
-            <input type="number" name="time_{{ t }}" min="0" max="100">
+<!-- 조회 폼 -->
+<form method="POST">
+    <label for="station">역 선택:</label>
+    <select name="station" id="station" required>
+        {% for s in stations %}
+            <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
         {% endfor %}
+    </select>
 
-        <button type="submit">추가</button>
-    </form>
+    <label for="time_slot">시간대 선택:</label>
+    <select name="time_slot" id="time_slot" required>
+        {% for t in time_slots %}
+            <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+    </select>
 
-    <hr>
-    <h2>삭제 기능</h2>
+    <label for="day_type">요일 선택:</label>
+    <select name="day_type" id="day_type">
+        <option value="평일">평일</option>
+        <option value="토요일">토요일</option>
+        <option value="일요일">일요일</option>
+    </select>
 
-    <!-- 역 전체 삭제 -->
-    <form method="POST" action="/delete_station">
-        <label for="del_station">삭제할 역 선택:</label>
-        <select name="del_station" id="del_station" required>
-            {% for s in stations %}
-                <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit">역 전체 삭제</button>
-    </form>
+    <label for="direction">방향 선택:</label>
+    <select name="direction" id="direction">
+        <option value="상선">상선</option>
+        <option value="하선">하선</option>
+    </select>
 
-    <!-- 특정 혼잡도 삭제 -->
-    <form method="POST" action="/delete_congestion">
-        <label for="del_station2">역 선택:</label>
-        <select name="del_station" id="del_station2" required>
-            {% for s in stations %}
-                <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
-            {% endfor %}
-        </select>
+    <button type="submit">조회</button>
+</form>
 
-        <label for="del_time">시간대 선택:</label>
-        <select name="del_time" id="del_time" required>
-            {% for t in time_slots %}
-                <option value="{{ t }}">{{ t }}</option>
-            {% endfor %}
-        </select>
+<!-- 조회 결과 -->
+{% if result %}
+    <h2>
+        {{ result.station_name }}
+        {{ result.day_type }}
+        {{ result.time_slot }}
+        {{ result.direction }}
+        혼잡도
+        {% if result.congestion_level is not none %}
+            {{ result.congestion_level }}%
+        {% else %}
+            데이터 없음
+        {% endif %}
+    </h2>
+{% endif %}
 
-        <label for="del_day_type">요일 선택:</label>
-        <select name="del_day_type" id="del_day_type">
-            <option value="평일">평일</option>
-            <option value="토요일">토요일</option>
-            <option value="일요일">일요일</option>
-        </select>
+<hr>
 
-        <label for="del_direction">방향 선택:</label>
-        <select name="del_direction" id="del_direction">
-            <option value="상선">상선</option>
-            <option value="하선">하선</option>
-        </select>
+<h2>새로운 역 및 혼잡도 추가</h2>
 
-        <button type="submit">혼잡도 삭제</button>
-    </form>
+<form method="POST" action="/add_station">
+    <label for="new_station_name">역 이름:</label>
+    <input type="text" name="new_station_name" id="new_station_name" required>
+
+    <label for="new_line">호선:</label>
+    <input type="number" name="new_line" id="new_line" required>
+
+    <label for="new_station_number">역 번호:</label>
+    <input type="text" name="new_station_number" id="new_station_number" required>
+
+    <label for="new_day_type">요일:</label>
+    <select name="new_day_type" id="new_day_type">
+        <option value="평일">평일</option>
+        <option value="토요일">토요일</option>
+        <option value="일요일">일요일</option>
+    </select>
+
+    <label for="new_direction">방향:</label>
+    <select name="new_direction" id="new_direction">
+        <option value="상선">상선</option>
+        <option value="하선">하선</option>
+    </select>
+
+    <br><br>
+
+    {% for t in time_slots %}
+        <label>{{ t }}:</label>
+        <input type="number" name="time_{{ t }}" min="0" max="100">
+    {% endfor %}
+
+    <br><br>
+    <button type="submit">추가</button>
+</form>
+
+<hr>
+
+<h2>삭제 기능</h2>
+
+<!-- 역 전체 삭제 -->
+<form method="POST" action="/delete_station">
+    <label for="del_station">삭제할 역 선택:</label>
+    <select name="del_station" id="del_station" required>
+        {% for s in stations %}
+            <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">역 전체 삭제</button>
+</form>
+
+<br>
+
+<!-- 특정 혼잡도 삭제 -->
+<form method="POST" action="/delete_congestion">
+    <label for="del_station2">역 선택:</label>
+    <select name="del_station" id="del_station2" required>
+        {% for s in stations %}
+            <option value="{{ s['station_id'] }}">{{ s['station_name'] }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="del_time">시간대 선택:</label>
+    <select name="del_time" id="del_time" required>
+        {% for t in time_slots %}
+            <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="del_day_type">요일 선택:</label>
+    <select name="del_day_type" id="del_day_type">
+        <option value="평일">평일</option>
+        <option value="토요일">토요일</option>
+        <option value="일요일">일요일</option>
+    </select>
+
+    <label for="del_direction">방향 선택:</label>
+    <select name="del_direction" id="del_direction">
+        <option value="상선">상선</option>
+        <option value="하선">하선</option>
+    </select>
+
+    <button type="submit">혼잡도 삭제</button>
+</form>
 
 </body>
 </html>
