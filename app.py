@@ -7,22 +7,18 @@ app = Flask(__name__)
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    # 외래키 ON (역 삭제 시 congestion 자동 삭제)
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA foreign_keys = ON")  # 외래키 활성화 (CASCADE)
     return conn
 
-
-# 조회 기능
+# 조회
 @app.route("/", methods=["GET", "POST"])
 def index():
     conn = get_db()
     cursor = conn.cursor()
 
-    # 역 목록 가져오기
     cursor.execute("SELECT station_id, station_name FROM Station ORDER BY station_name")
     stations = cursor.fetchall()
 
-    # 시간대 목록 가져오기
     cursor.execute("SELECT DISTINCT time_slot FROM Congestion ORDER BY time_slot")
     time_slots = [row["time_slot"] for row in cursor.fetchall()]
 
@@ -34,7 +30,6 @@ def index():
         day_type = request.form.get("day_type") or "평일"
         direction = request.form.get("direction") or "상선"
 
-        # 선택된 값으로 혼잡도 조회
         cursor.execute("""
             SELECT congestion_level FROM Congestion
             WHERE station_id=? AND time_slot=? AND day_type=? AND direction=? LIMIT 1
@@ -49,8 +44,7 @@ def index():
                            time_slots=time_slots,
                            congestion_value=congestion_value)
 
-
-# 새로운 역 + 혼잡도 추가 기능
+# 추가
 @app.route("/add_station", methods=["POST"])
 def add_station():
     conn = get_db()
@@ -67,19 +61,15 @@ def add_station():
     except ValueError:
         line = None
 
-    # Station 테이블에 INSERT
     cursor.execute("SELECT station_id FROM Station WHERE line=? AND station_number=?", (line, station_number))
     res = cursor.fetchone()
     if res is None:
-        cursor.execute(
-            "INSERT INTO Station (line, station_number, station_name) VALUES (?, ?, ?)",
-            (line, station_number, station_name)
-        )
+        cursor.execute("INSERT INTO Station (line, station_number, station_name) VALUES (?, ?, ?)",
+                       (line, station_number, station_name))
         station_id = cursor.lastrowid
     else:
         station_id = res["station_id"]
 
-    # 시간대별 혼잡도 INSERT
     cursor.execute("SELECT DISTINCT time_slot FROM Congestion ORDER BY time_slot")
     time_slots = [row["time_slot"] for row in cursor.fetchall()]
 
@@ -100,28 +90,24 @@ def add_station():
 
     conn.commit()
     conn.close()
-    return "새로운 역과 혼잡도가 추가되었습니다. <a href='/'>홈으로</a>"
-
+    return "추가 완료. <a href='/'>홈으로</a>"
 
 # 역 전체 삭제
 @app.route("/delete_station", methods=["POST"])
 def delete_station():
     conn = get_db()
     cursor = conn.cursor()
-
     station_id = request.form.get("del_station")
     cursor.execute("DELETE FROM Station WHERE station_id=?", (station_id,))
-
     conn.commit()
     conn.close()
-    return "선택한 역과 관련 혼잡도가 모두 삭제되었습니다. <a href='/'>홈으로</a>"
+    return "역과 관련 혼잡도 삭제 완료. <a href='/'>홈으로</a>"
 
-
+# 특정 혼잡도 삭제
 @app.route("/delete_congestion", methods=["POST"])
 def delete_congestion():
     conn = get_db()
     cursor = conn.cursor()
-
     station_id = request.form.get("del_station")
     time_slot = request.form.get("del_time")
     day_type = request.form.get("del_day_type") or "평일"
@@ -134,7 +120,7 @@ def delete_congestion():
 
     conn.commit()
     conn.close()
-    return "선택한 혼잡도 데이터가 삭제되었습니다. <a href='/'>홈으로</a>"
+    return "혼잡도 데이터 삭제 완료. <a href='/'>홈으로</a>"
 
 if __name__ == "__main__":
     app.run(debug=True)
