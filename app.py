@@ -15,11 +15,33 @@ def get_db():
     return conn
 
 
-# 초기: 테이블이 없으면 생성 (한번만)
+# 초기에 테이블이 없으면 생성힘 (한번만)
 create_tables_if_not_exists()
 
 
-# Read (조회)
+def direction_to_display(dir_value):
+    """
+    DB에 저장된 방향('상선'/'하선')을 화면에 표시할 문자열('내선'/'외선')로 변환.
+    - '상선' -> '내선'
+    - '하선' -> '외선'
+    - 기타는 그대로 반환
+    """
+    if dir_value is None:
+        return None
+    s = str(dir_value).strip()
+    if s == "상선":
+        return "내선"
+    if s == "하선":
+        return "외선"
+    # 만약 DB에 '내선'/'외선'이 이미 들어있다면 그대로 쓰기
+    if "내" in s:
+        return "내선"
+    if "외" in s:
+        return "외선"
+    return s
+
+
+# Read
 @app.route("/", methods=["GET", "POST"])
 def index():
     conn = get_db()
@@ -37,6 +59,7 @@ def index():
             station_id = request.form.get("station")
             time_slot = request.form.get("time_slot")
             day_type = request.form.get("day_type", "평일")
+            # 사용자는 폼에서 '상선' 또는 '하선'을 선택하도록 되어 있음
             direction = request.form.get("direction", "상선")
 
             if station_id and time_slot:
@@ -49,21 +72,24 @@ def index():
                 """, (station_id, time_slot, day_type, direction))
                 row = cur.fetchone()
                 if row:
+                    # DB에 저장된 'direction'은 그대로 두고, 화면에 보여줄 방향은 별도 필드로 만든다.
                     result = dict(row)
+                    # 덮어쓰기 하지 않고 별도 필드 추가(템플릿에서는 result.display_direction 사용 가능)
+                    result["display_direction"] = direction_to_display(row["direction"])
                 else:
-                    # 데이터 없으면 역 이름만 가져와 보여줌
+                    # 데이터 없으면 역 이름만 가져와 보여줌 (그리고 form에서 선택한 direction -> 표시용으로 변환)
                     cur.execute("SELECT station_name FROM Station WHERE station_id=?", (station_id,))
                     s = cur.fetchone()
                     result = {
                         "station_name": s["station_name"] if s else "",
                         "day_type": day_type,
                         "time_slot": time_slot,
-                        "direction": direction,
+                        "direction": direction,               # 내부값(원래 form 값)
+                        "display_direction": direction_to_display(direction),
                         "congestion_level": None
                     }
     finally:
         conn.close()
-
     return render_template("index.html", stations=stations, time_slots=time_slots, result=result)
 
 
@@ -112,7 +138,7 @@ def add_station():
                 except ValueError:
                     congestion_level = None
 
-            # INSERT OR REPLACE 해서 새로 추가되거나 덮어쓰기(원하면 IGNORE로 바꿀 수 있음)
+            # INSERT OR REPLACE 해서 새로 추가되거나 덮어쓰기
             cur.execute("""
                 INSERT OR REPLACE INTO Congestion (id, station_id, day_type, direction, time_slot, congestion_level)
                 VALUES (
@@ -206,7 +232,6 @@ def update_congestion():
                 WHERE station_id=? AND time_slot=? AND day_type=? AND direction=?
             """, (station_id, time_slot, day_type, direction))
             if cur.rowcount == 0:
-                # 행이 없으면 삽입(없을 때에도 NULL로 기록할 이유는 거의 없지만 일관성 위해 삽입 가능)
                 cur.execute("""
                     INSERT INTO Congestion (station_id, day_type, direction, time_slot, congestion_level)
                     VALUES (?, ?, ?, ?, NULL)
@@ -227,7 +252,6 @@ def update_congestion():
             """, (new_int, station_id, time_slot, day_type, direction))
 
             if cur.rowcount == 0:
-                # 존재하지 않으면 INSERT
                 cur.execute("""
                     INSERT INTO Congestion (station_id, day_type, direction, time_slot, congestion_level)
                     VALUES (?, ?, ?, ?, ?)

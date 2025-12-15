@@ -29,7 +29,7 @@
   {% endif %}
 {% endwith %}
 
-<!-- READ: 조회 -->
+<!-- READ-->
 <div class="section">
   <h2>조회</h2>
   <form method="POST">
@@ -70,7 +70,16 @@
   {% if result %}
     <h3>결과:</h3>
     <p>
-      {{ result.station_name }} ({{ result.day_type }}) {{ result.time_slot }} {{ result.direction }}
+      {{ result.station_name }}
+      {{ result.day_type }}
+      {{ result.time_slot }}
+
+      {% if result.direction == '상선' %}
+        내선
+      {% elif result.direction == '하선' %}
+        외선
+      {% endif %}
+
       - 혼잡도:
       {% if result.congestion_level is not none %}
         {{ result.congestion_level }}%
@@ -83,13 +92,14 @@
 
 <hr>
 
-<!-- CREATE: 추가 -->
+<!-- CREATE-->
 <div class="section">
   <h2>Create — 새로운 역 / 혼잡도 추가</h2>
   <form method="POST" action="/add_station">
     <label>역 이름: <input type="text" name="new_station_name" required></label>
     <label>호선: <input type="number" name="new_line" min="1" required></label>
     <label>역 번호: <input type="text" name="new_station_number" required></label>
+
     <label>요일:
       <select name="new_day_type">
         <option value="평일">평일</option>
@@ -97,6 +107,7 @@
         <option value="일요일">일요일</option>
       </select>
     </label>
+
     <label>방향:
       <select name="new_direction">
         <option value="상선">상선</option>
@@ -105,27 +116,26 @@
     </label>
 
     <div style="margin-top:8px;">
-      <strong>시간대별 혼잡도 (빈칸 허용 → NULL):</strong><br>
+      <strong>시간대별 혼잡도 (빈칸 → NULL)</strong><br>
       {% for t in time_slots %}
-        <label style="display:inline-block; width:150px;">{{ t }}: <input type="number" name="time_{{ t }}" min="0" max="100"></label>
+        <label style="display:inline-block; width:150px;">
+          {{ t }}: <input type="number" name="time_{{ t }}" min="0" max="100">
+        </label>
       {% endfor %}
     </div>
 
-    <div style="margin-top:8px;">
-      <button type="submit">추가</button>
-    </div>
+    <button type="submit">추가</button>
   </form>
 </div>
 
 <hr>
 
-<!-- UPDATE: 역 정보 수정 -->
+<!-- UPDATE-->
 <div class="section">
   <h2>Update — 역 정보 수정</h2>
   <form method="POST" action="/update_station">
-    <label>수정할 역:
+    <label>역:
       <select name="upd_station" required>
-        <option value="">--선택--</option>
         {% for s in stations %}
           <option value="{{ s.station_id }}">{{ s.station_name }}</option>
         {% endfor %}
@@ -133,20 +143,18 @@
     </label>
 
     <label>새 이름: <input type="text" name="upd_station_name"></label>
-    <label>새 호선: <input type="number" name="upd_line" min="1"></label>
+    <label>새 호선: <input type="number" name="upd_line"></label>
     <label>새 역번호: <input type="text" name="upd_station_number"></label>
 
     <button type="submit">역 정보 수정</button>
   </form>
 </div>
 
-<!-- UPDATE: 혼잡도 수정 -->
 <div class="section">
-  <h2>Update — 혼잡도 값 수정</h2>
+  <h2>Update — 혼잡도 수정</h2>
   <form method="POST" action="/update_congestion">
     <label>역:
       <select name="upd_station2" required>
-        <option value="">--선택--</option>
         {% for s in stations %}
           <option value="{{ s.station_id }}">{{ s.station_name }}</option>
         {% endfor %}
@@ -154,7 +162,7 @@
     </label>
 
     <label>시간:
-      <select name="upd_time" required>
+      <select name="upd_time">
         {% for t in time_slots %}
           <option value="{{ t }}">{{ t }}</option>
         {% endfor %}
@@ -176,78 +184,37 @@
       </select>
     </label>
 
-    <div style="margin-top:8px;">
-      <label>새 값 (빈칸 → NULL): <input type="text" name="upd_value" placeholder="예: 45"></label>
-    </div>
+    <label>새 값: <input type="number" name="upd_value"></label>
 
-    <div style="margin-top:8px;">
-      <button type="submit">혼잡도 수정</button>
-    </div>
+    <button type="submit">혼잡도 수정</button>
   </form>
 </div>
 
 <hr>
 
-<!-- DELETE: 삭제 -->
+<!-- DELETE-->
 <div class="section">
-  <h2>Delete — 삭제</h2>
+  <h2>Delete</h2>
 
-  <form method="POST" action="/delete_station" onsubmit="return confirm('정말 선택한 역을 완전히 삭제하시겠습니까? 관련 혼잡도도 삭제됩니다.')">
-    <label>삭제할 역:
-      <select name="del_station" required>
-        {% for s in stations %}
-          <option value="{{ s.station_id }}">{{ s.station_name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <button type="submit">역 전체 삭제</button>
-  </form>
-
-  <br>
-
-  <form method="POST" action="/delete_congestion" onsubmit="return confirm('정말 선택한 혼잡도 데이터를 삭제하겠습니까?')">
+  <form method="POST" action="/delete_station">
     <label>역:
-      <select name="del_station" required>
+      <select name="del_station">
         {% for s in stations %}
           <option value="{{ s.station_id }}">{{ s.station_name }}</option>
         {% endfor %}
       </select>
     </label>
-
-    <label>시간:
-      <select name="del_time" required>
-        {% for t in time_slots %}
-          <option value="{{ t }}">{{ t }}</option>
-        {% endfor %}
-      </select>
-    </label>
-
-    <label>요일:
-      <select name="del_day_type">
-        <option value="평일">평일</option>
-        <option value="토요일">토요일</option>
-        <option value="일요일">일요일</option>
-      </select>
-    </label>
-
-    <label>방향:
-      <select name="del_direction">
-        <option value="상선">상선</option>
-        <option value="하선">하선</option>
-      </select>
-    </label>
-
-    <button type="submit">혼잡도 삭제</button>
+    <button type="submit">역 삭제</button>
   </form>
 </div>
 
 <hr>
 
-<!-- RESET (CSV 복구) -->
+<!-- RESET-->
 <div class="section">
-  <h2 style="color:#b00">관리자: DB 원본( CSV )으로 초기화</h2>
-  <form method="POST" action="/reset_db" onsubmit="return confirm('DB를 CSV 원본 상태로 초기화합니다. 진행하시겠습니까?')">
-    <button type="submit" style="color:red;">원본 CSV로 초기화</button>
+  <h2 style="color:red;">관리자: CSV 원본 복구</h2>
+  <form method="POST" action="/reset_db">
+    <button type="submit">원본 CSV로 초기화</button>
   </form>
 </div>
 

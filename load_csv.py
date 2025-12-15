@@ -6,6 +6,36 @@ DB_PATH = "database.db"
 CSV_PATH = "서울교통공사_지하철혼잡도정보_20250630.csv"
 
 
+def normalize_direction_value(dir_str):
+    """
+    CSV 또는 DB에 들어있는 방향 표기를 정규화해서
+    '상선' 또는 '하선' 으로 반환한다.
+    - '내선' -> '상선'
+    - '외선' -> '하선'
+    - '상', '상선' -> '상선'
+    - '하', '하선' -> '하선'
+    그 외는 원형 문자열(strip) 반환.
+    """
+    if dir_str is None:
+        return None
+    s = dir_str.strip()
+    if s == "":
+        return s
+    low = s.lower()
+    # 내/외 포함 점검 (우선순위: 내/외)
+    if "내" in low:
+        return "상선"
+    if "외" in low:
+        return "하선"
+    # 상/하 문자로 판단
+    if "상" in low:
+        return "상선"
+    if "하" in low:
+        return "하선"
+    # 기본: 원형(strip)
+    return s
+
+
 def create_tables_if_not_exists():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -40,13 +70,27 @@ def create_tables_if_not_exists():
     cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_congestion_unique ON Congestion(station_id, day_type, direction, time_slot)")
 
     conn.commit()
-    conn.close()
+
+    # 기존 DB에 '내선'/'외선' 등의 표기가 남아있다면 정규화 수행
+    try:
+        # '내' 포함 -> 상선, '외' 포함 -> 하선
+        cur.execute("UPDATE Congestion SET direction='상선' WHERE direction LIKE '%내%'")
+        cur.execute("UPDATE Congestion SET direction='하선' WHERE direction LIKE '%외%'")
+        # 일반적으로 '상'/'하'만 들어간 경우도 정규화
+        cur.execute("UPDATE Congestion SET direction='상선' WHERE direction IN ('상','상선','상 ')")
+        cur.execute("UPDATE Congestion SET direction='하선' WHERE direction IN ('하','하선','하 ')")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
 
 
 def reset_db_from_csv():
     """
     DB의 기존 데이터를 삭제하고,
     CSV 파일 내용을 기준으로 Station과 Congestion을 다시 채운다.
+    방향은 normalize_direction_value 로 정규화하여 저장한다.
     """
     if not os.path.exists(CSV_PATH):
         raise FileNotFoundError(f"CSV 파일을 찾을 수 없습니다: {CSV_PATH}")
@@ -58,7 +102,6 @@ def reset_db_from_csv():
     cur.execute("PRAGMA foreign_keys = ON")
     cur.execute("PRAGMA journal_mode = WAL")
 
-    # 안전하게 트랜잭션으로 처리
     try:
         # 기존 데이터 삭제 (순서: 자식 -> 부모)
         cur.execute("DELETE FROM Congestion")
@@ -79,7 +122,10 @@ def reset_db_from_csv():
                 raw_line = row[1].strip()
                 station_number = row[2].strip()
                 station_name = row[3].strip()
-                direction = row[4].strip()
+                direction_raw = row[4].strip()
+
+                # 정규화: 내/외 -> 상/하
+                direction = normalize_direction_value(direction_raw)
 
                 digits = ''.join(ch for ch in raw_line if ch.isdigit())
                 line = int(digits) if digits else None
@@ -118,7 +164,6 @@ def reset_db_from_csv():
 
 
 if __name__ == "__main__":
-    # 직접 실행 시 초기화 (테스트 용)
     print("DB 테이블 생성(없으면) 및 CSV로 초기화 시작...")
     create_tables_if_not_exists()
     reset_db_from_csv()
